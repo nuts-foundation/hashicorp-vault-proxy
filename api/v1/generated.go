@@ -13,6 +13,13 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// Defines values for ServiceStatusStatus.
+const (
+	Fail ServiceStatusStatus = "fail"
+	Pass ServiceStatusStatus = "pass"
+	Warn ServiceStatusStatus = "warn"
+)
+
 // ErrorResponse The ErrorResponse contains the Problem Details for HTTP APIs as specified in [RFC7807](https://tools.ietf.org/html/rfc7807).
 //
 // It provides more detais about probles occured in the storage server.
@@ -36,6 +43,9 @@ type ErrorResponse struct {
 	Title string `json:"title"`
 }
 
+// KeyList defines model for KeyList.
+type KeyList = []string
+
 // Secret The secret value stored under the provided path. The secret should be a asci string or be base64 encoded.
 type Secret = string
 
@@ -44,6 +54,21 @@ type SecretResponse struct {
 	// Data The secret value stored under the provided path. The secret should be a asci string or be base64 encoded.
 	Data Secret `json:"data"`
 }
+
+// ServiceStatus defines model for ServiceStatus.
+type ServiceStatus struct {
+	// Status Indicates whether the service status is acceptable. Possible values are:
+	// * **pass**: healthy.
+	// * **fail**: unhealthy.
+	// * **warn**: healthy, with some concerns.
+	Status ServiceStatusStatus `json:"status"`
+}
+
+// ServiceStatusStatus Indicates whether the service status is acceptable. Possible values are:
+// * **pass**: healthy.
+// * **fail**: unhealthy.
+// * **warn**: healthy, with some concerns.
+type ServiceStatusStatus string
 
 // StoreSecretRequest Request body to store a secret value.
 type StoreSecretRequest struct {
@@ -56,15 +81,21 @@ type StoreSecretJSONRequestBody = StoreSecretRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (GET /health)
+	HealthCheck(ctx echo.Context) error
+
+	// (GET /secrets)
+	ListKeys(ctx echo.Context) error
 	// Delete a value from the key store
-	// (DELETE /secrets/{path})
-	DeleteSecret(ctx echo.Context, path string) error
+	// (DELETE /secrets/{key})
+	DeleteSecret(ctx echo.Context, key string) error
 	// Lookup the secret for the provided path
-	// (GET /secrets/{path})
-	LookupSecret(ctx echo.Context, path string) error
+	// (GET /secrets/{key})
+	LookupSecret(ctx echo.Context, key string) error
 	// Store a new value in the key store
-	// (POST /secrets/{path})
-	StoreSecret(ctx echo.Context, path string) error
+	// (POST /secrets/{key})
+	StoreSecret(ctx echo.Context, key string) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -72,51 +103,69 @@ type ServerInterfaceWrapper struct {
 	Handler ServerInterface
 }
 
+// HealthCheck converts echo context to params.
+func (w *ServerInterfaceWrapper) HealthCheck(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.HealthCheck(ctx)
+	return err
+}
+
+// ListKeys converts echo context to params.
+func (w *ServerInterfaceWrapper) ListKeys(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshalled arguments
+	err = w.Handler.ListKeys(ctx)
+	return err
+}
+
 // DeleteSecret converts echo context to params.
 func (w *ServerInterfaceWrapper) DeleteSecret(ctx echo.Context) error {
 	var err error
-	// ------------- Path parameter "path" -------------
-	var path string
+	// ------------- Path parameter "key" -------------
+	var key string
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "path", runtime.ParamLocationPath, ctx.Param("path"), &path)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "key", runtime.ParamLocationPath, ctx.Param("key"), &key)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter path: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter key: %s", err))
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.DeleteSecret(ctx, path)
+	err = w.Handler.DeleteSecret(ctx, key)
 	return err
 }
 
 // LookupSecret converts echo context to params.
 func (w *ServerInterfaceWrapper) LookupSecret(ctx echo.Context) error {
 	var err error
-	// ------------- Path parameter "path" -------------
-	var path string
+	// ------------- Path parameter "key" -------------
+	var key string
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "path", runtime.ParamLocationPath, ctx.Param("path"), &path)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "key", runtime.ParamLocationPath, ctx.Param("key"), &key)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter path: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter key: %s", err))
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.LookupSecret(ctx, path)
+	err = w.Handler.LookupSecret(ctx, key)
 	return err
 }
 
 // StoreSecret converts echo context to params.
 func (w *ServerInterfaceWrapper) StoreSecret(ctx echo.Context) error {
 	var err error
-	// ------------- Path parameter "path" -------------
-	var path string
+	// ------------- Path parameter "key" -------------
+	var key string
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "path", runtime.ParamLocationPath, ctx.Param("path"), &path)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "key", runtime.ParamLocationPath, ctx.Param("key"), &key)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter path: %s", err))
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter key: %s", err))
 	}
 
 	// Invoke the callback with all the unmarshalled arguments
-	err = w.Handler.StoreSecret(ctx, path)
+	err = w.Handler.StoreSecret(ctx, key)
 	return err
 }
 
@@ -148,14 +197,66 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.DELETE(baseURL+"/secrets/:path", wrapper.DeleteSecret)
-	router.GET(baseURL+"/secrets/:path", wrapper.LookupSecret)
-	router.POST(baseURL+"/secrets/:path", wrapper.StoreSecret)
+	router.GET(baseURL+"/health", wrapper.HealthCheck)
+	router.GET(baseURL+"/secrets", wrapper.ListKeys)
+	router.DELETE(baseURL+"/secrets/:key", wrapper.DeleteSecret)
+	router.GET(baseURL+"/secrets/:key", wrapper.LookupSecret)
+	router.POST(baseURL+"/secrets/:key", wrapper.StoreSecret)
 
 }
 
+type HealthCheckRequestObject struct {
+}
+
+type HealthCheckResponseObject interface {
+	VisitHealthCheckResponse(w http.ResponseWriter) error
+}
+
+type HealthCheck200JSONResponse ServiceStatus
+
+func (response HealthCheck200JSONResponse) VisitHealthCheckResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/health+json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type HealthCheck503JSONResponse ServiceStatus
+
+func (response HealthCheck503JSONResponse) VisitHealthCheckResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/health+json")
+	w.WriteHeader(503)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListKeysRequestObject struct {
+}
+
+type ListKeysResponseObject interface {
+	VisitListKeysResponse(w http.ResponseWriter) error
+}
+
+type ListKeys200JSONResponse KeyList
+
+func (response ListKeys200JSONResponse) VisitListKeysResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type ListKeys400JSONResponse ErrorResponse
+
+func (response ListKeys400JSONResponse) VisitListKeysResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 type DeleteSecretRequestObject struct {
-	Path string `json:"path"`
+	Key string `json:"key"`
 }
 
 type DeleteSecretResponseObject interface {
@@ -188,7 +289,7 @@ func (response DeleteSecret404Response) VisitDeleteSecretResponse(w http.Respons
 }
 
 type LookupSecretRequestObject struct {
-	Path string `json:"path"`
+	Key string `json:"key"`
 }
 
 type LookupSecretResponseObject interface {
@@ -222,7 +323,7 @@ func (response LookupSecret404Response) VisitLookupSecretResponse(w http.Respons
 }
 
 type StoreSecretRequestObject struct {
-	Path string `json:"path"`
+	Key  string `json:"key"`
 	Body *StoreSecretJSONRequestBody
 }
 
@@ -258,14 +359,20 @@ func (response StoreSecret409Response) VisitStoreSecretResponse(w http.ResponseW
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+
+	// (GET /health)
+	HealthCheck(ctx context.Context, request HealthCheckRequestObject) (HealthCheckResponseObject, error)
+
+	// (GET /secrets)
+	ListKeys(ctx context.Context, request ListKeysRequestObject) (ListKeysResponseObject, error)
 	// Delete a value from the key store
-	// (DELETE /secrets/{path})
+	// (DELETE /secrets/{key})
 	DeleteSecret(ctx context.Context, request DeleteSecretRequestObject) (DeleteSecretResponseObject, error)
 	// Lookup the secret for the provided path
-	// (GET /secrets/{path})
+	// (GET /secrets/{key})
 	LookupSecret(ctx context.Context, request LookupSecretRequestObject) (LookupSecretResponseObject, error)
 	// Store a new value in the key store
-	// (POST /secrets/{path})
+	// (POST /secrets/{key})
 	StoreSecret(ctx context.Context, request StoreSecretRequestObject) (StoreSecretResponseObject, error)
 }
 
@@ -282,11 +389,57 @@ type strictHandler struct {
 	middlewares []StrictMiddlewareFunc
 }
 
+// HealthCheck operation middleware
+func (sh *strictHandler) HealthCheck(ctx echo.Context) error {
+	var request HealthCheckRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.HealthCheck(ctx.Request().Context(), request.(HealthCheckRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "HealthCheck")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(HealthCheckResponseObject); ok {
+		return validResponse.VisitHealthCheckResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("Unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// ListKeys operation middleware
+func (sh *strictHandler) ListKeys(ctx echo.Context) error {
+	var request ListKeysRequestObject
+
+	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+		return sh.ssi.ListKeys(ctx.Request().Context(), request.(ListKeysRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListKeys")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return err
+	} else if validResponse, ok := response.(ListKeysResponseObject); ok {
+		return validResponse.VisitListKeysResponse(ctx.Response())
+	} else if response != nil {
+		return fmt.Errorf("Unexpected response type: %T", response)
+	}
+	return nil
+}
+
 // DeleteSecret operation middleware
-func (sh *strictHandler) DeleteSecret(ctx echo.Context, path string) error {
+func (sh *strictHandler) DeleteSecret(ctx echo.Context, key string) error {
 	var request DeleteSecretRequestObject
 
-	request.Path = path
+	request.Key = key
 
 	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.DeleteSecret(ctx.Request().Context(), request.(DeleteSecretRequestObject))
@@ -308,10 +461,10 @@ func (sh *strictHandler) DeleteSecret(ctx echo.Context, path string) error {
 }
 
 // LookupSecret operation middleware
-func (sh *strictHandler) LookupSecret(ctx echo.Context, path string) error {
+func (sh *strictHandler) LookupSecret(ctx echo.Context, key string) error {
 	var request LookupSecretRequestObject
 
-	request.Path = path
+	request.Key = key
 
 	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.LookupSecret(ctx.Request().Context(), request.(LookupSecretRequestObject))
@@ -333,10 +486,10 @@ func (sh *strictHandler) LookupSecret(ctx echo.Context, path string) error {
 }
 
 // StoreSecret operation middleware
-func (sh *strictHandler) StoreSecret(ctx echo.Context, path string) error {
+func (sh *strictHandler) StoreSecret(ctx echo.Context, key string) error {
 	var request StoreSecretRequestObject
 
-	request.Path = path
+	request.Key = key
 
 	var body StoreSecretJSONRequestBody
 	if err := ctx.Bind(&body); err != nil {
