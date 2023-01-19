@@ -1,0 +1,277 @@
+{
+	"info": {
+		"_postman_id": "38f742ec-2173-4184-b3ea-dd74747b67cc",
+		"name": "Secret Storage API Testsuite",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Secret Lifecycle",
+			"item": [
+				{
+					"name": "Setup: remove key if exists",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Key removed\", () => {",
+									"    pm.response.to.have.status(204);",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_address}}/secrets/key_lifecycle",
+							"host": [
+								"{{api_address}}"
+							],
+							"path": [
+								"secrets",
+								"key_lifecycle"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create the key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Key stored\", () => {",
+									"    pm.response.to.have.status(200);",
+									"    pm.response.to.be.json;",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"data\": \"{{secret_key_data}}\"\n}"
+						},
+						"url": {
+							"raw": "{{api_address}}/secrets/key_lifecycle",
+							"host": [
+								"{{api_address}}"
+							],
+							"path": [
+								"secrets",
+								"key_lifecycle"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read the key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Key read\", () => {",
+									"    pm.response.to.have.status(200);",
+									"    pm.response.to.be.json;",
+									"    const responseJson = pm.response.json();",
+									"    const expectedSecret = pm.collectionVariables.get(\"secret_key_data\");",
+									"    pm.expect(responseJson.data).to.eql(expectedSecret);",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{api_address}}/secrets/key_lifecycle",
+							"host": [
+								"{{api_address}}"
+							],
+							"path": [
+								"secrets",
+								"key_lifecycle"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List all keys (should contain key)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"List contains the key\", () => {",
+									"    pm.response.to.have.status(200);",
+									"    pm.response.to.be.json;",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson).to.eql([\"key_lifecycle\"]);",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{api_address}}/secrets",
+							"host": [
+								"{{api_address}}"
+							],
+							"path": [
+								"secrets"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove key",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Key removed\", () => {",
+									"    pm.response.to.have.status(204);",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_address}}/secrets/key_lifecycle",
+							"host": [
+								"{{api_address}}"
+							],
+							"path": [
+								"secrets",
+								"key_lifecycle"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Read key (should not exist)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Key should not exist\", () => {",
+									"    pm.response.to.have.status(404);",
+									"    pm.response.to.be.json;",
+									"});",
+									"",
+									"pm.test(\"Error message should be as specified\", () => {",
+									"    const responseJson = pm.response.json();",
+									"    const expectedSecret = pm.collectionVariables.get(\"secret_key_data\");",
+									"    pm.expect(responseJson.data).to.eql(expectedSecret);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "default",
+								"disabled": true
+							}
+						],
+						"url": {
+							"raw": "{{api_address}}/secrets/key_lifecycle",
+							"host": [
+								"{{api_address}}"
+							],
+							"path": [
+								"secrets",
+								"key_lifecycle"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "api_address",
+			"value": "http://localhost:8210",
+			"type": "default"
+		},
+		{
+			"key": "secret_key_data",
+			"value": "this is a very secret key",
+			"type": "default"
+		}
+	]
+}
