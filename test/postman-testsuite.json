@@ -202,14 +202,15 @@
 							"script": {
 								"exec": [
 									"pm.test(\"Key should not exist\", () => {",
-									"    pm.response.to.have.status(404);",
+									"    pm.response.to.have.status(400);",
 									"    pm.response.to.be.json;",
 									"});",
 									"",
 									"pm.test(\"Error message should be as specified\", () => {",
 									"    const responseJson = pm.response.json();",
-									"    const expectedSecret = pm.collectionVariables.get(\"secret_key_data\");",
-									"    pm.expect(responseJson.data).to.eql(expectedSecret);",
+									"    pm.expect(responseJson.detail).to.eql(\"key not found\");",
+									"    pm.expect(responseJson.title).to.eql(\"Could not retrieve secret\");",
+									"    pm.expect(responseJson.status).to.eql(400);",
 									"});"
 								],
 								"type": "text/javascript"

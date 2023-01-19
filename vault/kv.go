@@ -11,7 +11,7 @@ import (
 
 type KVStorage struct {
 	config Config
-	client logicaler
+	client *vaultapi.Logical
 }
 
 // NewKVStore creates a new Vault backend using the kv version 1 secret engine: https://www.vaultproject.io/docs/secrets/kv
@@ -94,6 +94,7 @@ func (v KVStorage) getValue(path, key string) ([]byte, error) {
 	}
 	return base64.StdEncoding.DecodeString(value)
 }
+
 func (v KVStorage) storeValue(path, key string, value []byte) error {
 	_, err := v.client.Write(path, map[string]interface{}{key: value})
 	if err != nil {
@@ -102,7 +103,16 @@ func (v KVStorage) storeValue(path, key string, value []byte) error {
 	return nil
 }
 
-// ListSecretPaths returns a list of all keys in the vault storage
+func (v KVStorage) DeleteSecret(key string) error {
+	path := storagePath(v.config.PathPrefix, key)
+	_, err := v.client.Delete(path)
+	if err != nil {
+		return fmt.Errorf("unable to delete secret from vault: %w", err)
+	}
+	return nil
+}
+
+// ListKeys returns a list of all keys in the vault storage
 func (v KVStorage) ListKeys() ([]string, error) {
 	path := privateKeyListPath(v.config.PathPrefix)
 	response, err := v.client.ReadWithData(path, map[string][]string{"list": {"true"}})
