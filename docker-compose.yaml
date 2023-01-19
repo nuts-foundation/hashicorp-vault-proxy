@@ -13,3 +13,8 @@ services:
       - IPC_LOCK
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: root
+  postman:
+    image: postman/newman
+    command: run /opt/postman-testsuite.json --env-var="api_address=http://proxy:8210"
+    volumes:
+      - ./test/postman-testsuite.json:/opt/postman-testsuite.json:ro

@@ -10,5 +10,9 @@ docker:
 
 run:
 	docker compose stop && docker compose rm -f
-	docker compose up --wait
+	docker compose up vault proxy --wait
 	docker compose exec -e VAULT_TOKEN=root vault vault secrets enable -version=1 -address=http://localhost:8200 kv
+	sleep 2
+
+run-test: run
+	docker compose up postman
