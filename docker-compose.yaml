@@ -1,0 +1,15 @@
+version: "3.7"
+services:
+  proxy:
+    image: nutsfoundation/hashicorp-vault-proxy:latest
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+    ports:
+      - "8210:8210"
+  vault:
+    image: vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root

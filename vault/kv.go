@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/nuts-foundation/hashicorp-vault-proxy/log"
+	"github.com/sirupsen/logrus"
 	"net/url"
 	"path/filepath"
 )
@@ -48,12 +48,13 @@ func configureVaultClient(cfg Config) (*vaultapi.Client, error) {
 			return nil, fmt.Errorf("vault address invalid: %w", err)
 		}
 	}
+	logrus.Infof("Proxying to Vault at %s", client.Address)
 	return client, nil
 }
 
 func (v KVStorage) checkConnection() error {
 	// Perform a token introspection to test the connection. This should be allowed by the default vault token policy.
-	log.Logger().Debug("Verifying Vault connection...")
+	logrus.Debug("Verifying Vault connection...")
 	secret, err := v.client.Read("auth/token/lookup-self")
 	if err != nil {
 		return fmt.Errorf("unable to connect to Vault: unable to retrieve token status: %w", err)
@@ -61,7 +62,7 @@ func (v KVStorage) checkConnection() error {
 	if secret == nil || len(secret.Data) == 0 {
 		return fmt.Errorf("could not read token information on auth/token/lookup-self")
 	}
-	log.Logger().Info("Connected to Vault.")
+	logrus.Info("Connected to Vault.")
 	return nil
 }
 
@@ -106,13 +107,11 @@ func (v KVStorage) ListKeys() ([]string, error) {
 	path := privateKeyListPath(v.config.PathPrefix)
 	response, err := v.client.ReadWithData(path, map[string][]string{"list": {"true"}})
 	if err != nil {
-		log.Logger().
-			WithError(err).
-			Error("Could not list private keys in Vault")
+		logrus.WithError(err).Error("Could not list private keys in Vault")
 		return nil, err
 	}
 	if response == nil {
-		log.Logger().Warnf("Vault returned nothing while fetching private keys, maybe the path prefix ('%s') is incorrect or the engine doesn't exist?", v.config.PathPrefix)
+		logrus.Warnf("Vault returned nothing while fetching private keys, maybe the path prefix ('%s') is incorrect or the engine doesn't exist?", v.config.PathPrefix)
 		return nil, fmt.Errorf("vault returned nothing while fetching private keys")
 	}
 	keys, _ := response.Data["keys"].([]interface{})
