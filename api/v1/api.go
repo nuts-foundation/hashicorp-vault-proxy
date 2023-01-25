@@ -16,6 +16,10 @@ func NewWrapper(vault vault.Storage) Wrapper {
 }
 
 func (w Wrapper) DeleteSecret(ctx context.Context, request DeleteSecretRequestObject) (DeleteSecretResponseObject, error) {
+	err := w.vault.DeleteSecret(request.Key)
+	if err != nil {
+		return nil, err
+	}
 	return DeleteSecret204Response{}, nil
 }
 
