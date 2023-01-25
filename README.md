@@ -1,8 +1,7 @@
 # hashicorp-vault-proxy
 A small proxy server which implements the Nuts Storage API, forwarding calls to a Hashicorp Vault Server.
 
-Running
-*******
+## Running
 
 To build the application and start it with a Vault server, run:
 
@@ -18,8 +17,7 @@ To reset the services, effectively removing the Docker containers and volumes (i
 
     $ make reset
 
-Configuring
-***********
+## Configuring
 
 You can configure the backing Vault by setting environment variables (e.g. `VAULT_ADDR`) for the Vault client.
 See https://github.com/hashicorp/vault/blob/main/api/client.go for the available options.
@@ -28,8 +26,7 @@ In addition, the following environment variables can be set:
 
 - `VAULT_PATHPREFIX`: the path prefix to use for the Vault keys, which generally matches the secret store name (defaults to `kv`).
 
-Test suite
-**********
+## Test suite
 
 To run the test suite that tests compliance of the proxy with the Nuts Storage API, run:
 
@@ -43,8 +40,7 @@ Note: to build the proxy before running the test suite, run:
 
     $ make build api-test
 
-Code Generation
-***************
+## Code Generation
 
 Generating code:
 
