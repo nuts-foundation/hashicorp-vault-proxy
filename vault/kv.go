@@ -9,46 +9,37 @@ import (
 	"path/filepath"
 )
 
+const keyName = "key"
+
 type KVStorage struct {
-	config Config
-	client *vaultapi.Logical
+	client     *vaultapi.Logical
+	pathPrefix string
 }
 
 // NewKVStore creates a new Vault backend using the kv version 1 secret engine: https://www.vaultproject.io/docs/secrets/kv
 // It currently only supports token authentication which should be provided by the token param.
 // If config.Address is empty, the VAULT_ADDR environment should be set.
 // If config.Token is empty, the VAULT_TOKEN environment should be is set.
-func NewKVStore(config Config) (Storage, error) {
-	client, err := configureVaultClient(config)
+func NewKVStore(pathPrefix string) (Storage, error) {
+	client, err := configureVaultClient()
 	if err != nil {
 		return nil, err
 	}
 
-	vaultStorage := KVStorage{client: client.Logical(), config: config}
+	vaultStorage := KVStorage{client: client.Logical(), pathPrefix: pathPrefix}
 	if err = vaultStorage.checkConnection(); err != nil {
 		return nil, err
 	}
 	return vaultStorage, nil
 }
 
-func configureVaultClient(cfg Config) (*vaultapi.Client, error) {
+func configureVaultClient() (*vaultapi.Client, error) {
 	vaultConfig := vaultapi.DefaultConfig()
-	vaultConfig.Timeout = cfg.Timeout
 	client, err := vaultapi.NewClient(vaultConfig)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize Vault client: %w", err)
 	}
-	// The Vault client will automatically use the env var VAULT_TOKEN
-	// the client.SetToken overrides this value, so only set when not empty
-	if cfg.Token != "" {
-		client.SetToken(cfg.Token)
-	}
-	if cfg.Address != "" {
-		if err = client.SetAddress(cfg.Address); err != nil {
-			return nil, fmt.Errorf("vault address invalid: %w", err)
-		}
-	}
-	logrus.Infof("Proxying to Vault at %s", client.Address)
+	logrus.Infof("Proxying to Vault at %s", client.Address())
 	return client, nil
 }
 
@@ -67,7 +58,7 @@ func (v KVStorage) checkConnection() error {
 }
 
 func (v KVStorage) GetSecret(key string) ([]byte, error) {
-	path := storagePath(v.config.PathPrefix, key)
+	path := storagePath(v.pathPrefix, key)
 	value, err := v.getValue(path, keyName)
 	if err != nil {
 		return nil, err
@@ -104,7 +95,7 @@ func (v KVStorage) storeValue(path, key string, value []byte) error {
 }
 
 func (v KVStorage) DeleteSecret(key string) error {
-	path := storagePath(v.config.PathPrefix, key)
+	path := storagePath(v.pathPrefix, key)
 	_, err := v.client.Delete(path)
 	if err != nil {
 		return fmt.Errorf("unable to delete secret from vault: %w", err)
@@ -114,14 +105,14 @@ func (v KVStorage) DeleteSecret(key string) error {
 
 // ListKeys returns a list of all keys in the vault storage
 func (v KVStorage) ListKeys() ([]string, error) {
-	path := privateKeyListPath(v.config.PathPrefix)
+	path := privateKeyListPath(v.pathPrefix)
 	response, err := v.client.ReadWithData(path, map[string][]string{"list": {"true"}})
 	if err != nil {
 		logrus.WithError(err).Error("Could not list private keys in Vault")
 		return nil, err
 	}
 	if response == nil {
-		logrus.Warnf("Vault returned nothing while fetching private keys, maybe the path prefix ('%s') is incorrect or the engine doesn't exist?", v.config.PathPrefix)
+		logrus.Warnf("Vault returned nothing while fetching private keys, maybe the path prefix ('%s') is incorrect or the engine doesn't exist?", v.pathPrefix)
 		return nil, fmt.Errorf("vault returned nothing while fetching private keys")
 	}
 	keys, _ := response.Data["keys"].([]interface{})
@@ -149,7 +140,7 @@ func privateKeyListPath(prefix string) string {
 }
 
 func (v KVStorage) StoreSecret(key string, value []byte) error {
-	path := storagePath(v.config.PathPrefix, key)
+	path := storagePath(v.pathPrefix, key)
 
 	_, err := v.getValue(path, keyName)
 	if err == errKeyNotFound {

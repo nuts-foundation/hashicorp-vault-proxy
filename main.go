@@ -6,17 +6,24 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	v1 "github.com/nuts-foundation/hashicorp-vault-proxy/api/v1"
 	"github.com/nuts-foundation/hashicorp-vault-proxy/vault"
+	"github.com/sirupsen/logrus"
 	"os"
 )
 
 const listenAddress = ":8210"
 
 func main() {
-	fmt.Println("Starting the Hashicorp Vault Proxy...")
-	kv, err := vault.NewKVStore(loadConfig())
+	logrus.Info("Starting the Hashicorp Vault Proxy...")
+	pathPrefix := os.Getenv("VAULT_PATHPREFIX")
+	if pathPrefix == "" {
+		pathPrefix = "kv"
+	}
+
+	kv, err := vault.NewKVStore(pathPrefix)
 	if err != nil {
 		panic(fmt.Errorf("unable to create Vault KVStore: %w", err))
 	}
+
 	handler := v1.NewStrictHandler(v1.NewWrapper(kv), nil)
 
 	e := echo.New()
@@ -31,17 +38,5 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("unable to start server: %w", err))
 	}
-	fmt.Println("Goodbye!")
-}
-
-func loadConfig() vault.Config {
-	pathPrefix := os.Getenv("VAULT_PATHPREFIX")
-	if pathPrefix == "" {
-		pathPrefix = "kv"
-	}
-	cfg := vault.Config{
-		PathPrefix: pathPrefix,
-		Timeout:    0,
-	}
-	return cfg
+	logrus.Info("Goodbye!")
 }

@@ -18,6 +18,16 @@ To reset the services, effectively removing the Docker containers and volumes (i
 
     $ make reset
 
+Configuring
+***********
+
+You can configure the backing Vault by setting environment variables (e.g. `VAULT_ADDR`) for the Vault client.
+See https://github.com/hashicorp/vault/blob/main/api/client.go for the available options.
+
+In addition, the following environment variables can be set:
+
+- `VAULT_PATHPREFIX`: the path prefix to use for the Vault keys, which generally matches the secret store name (defaults to `kv`).
+
 Test suite
 **********
 
