@@ -22,7 +22,7 @@ const (
 
 // ErrorResponse The ErrorResponse contains the Problem Details for HTTP APIs as specified in [RFC7807](https://tools.ietf.org/html/rfc7807).
 //
-// It provides more detais about probles occured in the storage server.
+// It provides more details about problems occurred in the storage server.
 //
 // Return values contain the following members:
 // - **title** (string) - A short, human-readable summary of the problem type.
@@ -36,26 +36,32 @@ type ErrorResponse struct {
 	// Detail A human-readable explanation specific to this occurrence of the problem.
 	Detail string `json:"detail"`
 
-	// Status HTTP statuscode
+	// Status HTTP status-code
 	Status int `json:"status"`
 
 	// Title A short, human-readable summary of the problem type.
 	Title string `json:"title"`
 }
 
-// KeyList defines model for KeyList.
-type KeyList = []string
+// Key The key under which secrets can be stored or retrieved.
+//
+// The key should be considered opaque and no assumptions should be made about its value or format.
+// Since the key is the last part of the URL path, slashes and hash symbols must be escaped.
+type Key = safeKey
 
-// Secret The secret value stored under the provided path. The secret should be a asci string or be base64 encoded.
+// KeyList List of keys currently stored in the store.
+type KeyList = []Key
+
+// Secret The secret value stored under the provided key.
 type Secret = string
 
 // SecretResponse Response object containing the secret value.
 type SecretResponse struct {
-	// Data The secret value stored under the provided path. The secret should be a asci string or be base64 encoded.
-	Data Secret `json:"data"`
+	// Secret The secret value stored under the provided key.
+	Secret Secret `json:"secret"`
 }
 
-// ServiceStatus defines model for ServiceStatus.
+// ServiceStatus Response for the health check endpoint.
 type ServiceStatus struct {
 	// Status Indicates whether the service status is acceptable. Possible values are:
 	// * **pass**: healthy.
@@ -72,8 +78,8 @@ type ServiceStatusStatus string
 
 // StoreSecretRequest Request body to store a secret value.
 type StoreSecretRequest struct {
-	// Data The secret value stored under the provided path. The secret should be a asci string or be base64 encoded.
-	Data Secret `json:"data"`
+	// Secret The secret value stored under the provided key.
+	Secret Secret `json:"secret"`
 }
 
 // StoreSecretJSONRequestBody defines body for StoreSecret for application/json ContentType.
@@ -81,21 +87,21 @@ type StoreSecretJSONRequestBody = StoreSecretRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-
+	// Health check
 	// (GET /health)
 	HealthCheck(ctx echo.Context) error
-
+	// List all keys in the store
 	// (GET /secrets)
 	ListKeys(ctx echo.Context) error
-	// Delete a value from the key store
+	// Delete the secret for the provided key.
 	// (DELETE /secrets/{key})
-	DeleteSecret(ctx echo.Context, key string) error
-	// Lookup the secret for the provided path
+	DeleteSecret(ctx echo.Context, key Key) error
+	// Lookup the secret for the provided key
 	// (GET /secrets/{key})
-	LookupSecret(ctx echo.Context, key string) error
-	// Store a new value in the key store
+	LookupSecret(ctx echo.Context, key Key) error
+	// Store a new secret under the provided key
 	// (POST /secrets/{key})
-	StoreSecret(ctx echo.Context, key string) error
+	StoreSecret(ctx echo.Context, key Key) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -125,7 +131,7 @@ func (w *ServerInterfaceWrapper) ListKeys(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) DeleteSecret(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "key" -------------
-	var key string
+	var key Key
 
 	err = runtime.BindStyledParameterWithLocation("simple", false, "key", runtime.ParamLocationPath, ctx.Param("key"), &key)
 	if err != nil {
@@ -141,7 +147,7 @@ func (w *ServerInterfaceWrapper) DeleteSecret(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) LookupSecret(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "key" -------------
-	var key string
+	var key Key
 
 	err = runtime.BindStyledParameterWithLocation("simple", false, "key", runtime.ParamLocationPath, ctx.Param("key"), &key)
 	if err != nil {
@@ -157,7 +163,7 @@ func (w *ServerInterfaceWrapper) LookupSecret(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) StoreSecret(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "key" -------------
-	var key string
+	var key Key
 
 	err = runtime.BindStyledParameterWithLocation("simple", false, "key", runtime.ParamLocationPath, ctx.Param("key"), &key)
 	if err != nil {
@@ -215,7 +221,7 @@ type HealthCheckResponseObject interface {
 type HealthCheck200JSONResponse ServiceStatus
 
 func (response HealthCheck200JSONResponse) VisitHealthCheckResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/health+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
@@ -224,7 +230,7 @@ func (response HealthCheck200JSONResponse) VisitHealthCheckResponse(w http.Respo
 type HealthCheck503JSONResponse ServiceStatus
 
 func (response HealthCheck503JSONResponse) VisitHealthCheckResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/health+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(503)
 
 	return json.NewEncoder(w).Encode(response)
@@ -249,14 +255,14 @@ func (response ListKeys200JSONResponse) VisitListKeysResponse(w http.ResponseWri
 type ListKeys400JSONResponse ErrorResponse
 
 func (response ListKeys400JSONResponse) VisitListKeysResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
 type DeleteSecretRequestObject struct {
-	Key string `json:"key"`
+	Key Key `json:"key"`
 }
 
 type DeleteSecretResponseObject interface {
@@ -274,22 +280,23 @@ func (response DeleteSecret204Response) VisitDeleteSecretResponse(w http.Respons
 type DeleteSecret400JSONResponse ErrorResponse
 
 func (response DeleteSecret400JSONResponse) VisitDeleteSecretResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type DeleteSecret404Response struct {
-}
+type DeleteSecret404JSONResponse ErrorResponse
 
-func (response DeleteSecret404Response) VisitDeleteSecretResponse(w http.ResponseWriter) error {
+func (response DeleteSecret404JSONResponse) VisitDeleteSecretResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type LookupSecretRequestObject struct {
-	Key string `json:"key"`
+	Key Key `json:"key"`
 }
 
 type LookupSecretResponseObject interface {
@@ -308,22 +315,23 @@ func (response LookupSecret200JSONResponse) VisitLookupSecretResponse(w http.Res
 type LookupSecret400JSONResponse ErrorResponse
 
 func (response LookupSecret400JSONResponse) VisitLookupSecretResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type LookupSecret404Response struct {
-}
+type LookupSecret404JSONResponse ErrorResponse
 
-func (response LookupSecret404Response) VisitLookupSecretResponse(w http.ResponseWriter) error {
+func (response LookupSecret404JSONResponse) VisitLookupSecretResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type StoreSecretRequestObject struct {
-	Key  string `json:"key"`
+	Key  Key `json:"key"`
 	Body *StoreSecretJSONRequestBody
 }
 
@@ -343,35 +351,36 @@ func (response StoreSecret200JSONResponse) VisitStoreSecretResponse(w http.Respo
 type StoreSecret400JSONResponse ErrorResponse
 
 func (response StoreSecret400JSONResponse) VisitStoreSecretResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/problem+json")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type StoreSecret409Response struct {
-}
+type StoreSecret409JSONResponse ErrorResponse
 
-func (response StoreSecret409Response) VisitStoreSecretResponse(w http.ResponseWriter) error {
+func (response StoreSecret409JSONResponse) VisitStoreSecretResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
-
+	// Health check
 	// (GET /health)
 	HealthCheck(ctx context.Context, request HealthCheckRequestObject) (HealthCheckResponseObject, error)
-
+	// List all keys in the store
 	// (GET /secrets)
 	ListKeys(ctx context.Context, request ListKeysRequestObject) (ListKeysResponseObject, error)
-	// Delete a value from the key store
+	// Delete the secret for the provided key.
 	// (DELETE /secrets/{key})
 	DeleteSecret(ctx context.Context, request DeleteSecretRequestObject) (DeleteSecretResponseObject, error)
-	// Lookup the secret for the provided path
+	// Lookup the secret for the provided key
 	// (GET /secrets/{key})
 	LookupSecret(ctx context.Context, request LookupSecretRequestObject) (LookupSecretResponseObject, error)
-	// Store a new value in the key store
+	// Store a new secret under the provided key
 	// (POST /secrets/{key})
 	StoreSecret(ctx context.Context, request StoreSecretRequestObject) (StoreSecretResponseObject, error)
 }
@@ -436,7 +445,7 @@ func (sh *strictHandler) ListKeys(ctx echo.Context) error {
 }
 
 // DeleteSecret operation middleware
-func (sh *strictHandler) DeleteSecret(ctx echo.Context, key string) error {
+func (sh *strictHandler) DeleteSecret(ctx echo.Context, key Key) error {
 	var request DeleteSecretRequestObject
 
 	request.Key = key
@@ -461,7 +470,7 @@ func (sh *strictHandler) DeleteSecret(ctx echo.Context, key string) error {
 }
 
 // LookupSecret operation middleware
-func (sh *strictHandler) LookupSecret(ctx echo.Context, key string) error {
+func (sh *strictHandler) LookupSecret(ctx echo.Context, key Key) error {
 	var request LookupSecretRequestObject
 
 	request.Key = key
@@ -486,7 +495,7 @@ func (sh *strictHandler) LookupSecret(ctx echo.Context, key string) error {
 }
 
 // StoreSecret operation middleware
-func (sh *strictHandler) StoreSecret(ctx echo.Context, key string) error {
+func (sh *strictHandler) StoreSecret(ctx echo.Context, key Key) error {
 	var request StoreSecretRequestObject
 
 	request.Key = key

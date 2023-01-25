@@ -27,7 +27,7 @@ func NewKVStore(pathPrefix string) (Storage, error) {
 	}
 
 	vaultStorage := KVStorage{client: client.Logical(), pathPrefix: pathPrefix}
-	if err = vaultStorage.checkConnection(); err != nil {
+	if err = vaultStorage.Ping(); err != nil {
 		return nil, err
 	}
 	return vaultStorage, nil
@@ -43,7 +43,7 @@ func configureVaultClient() (*vaultapi.Client, error) {
 	return client, nil
 }
 
-func (v KVStorage) checkConnection() error {
+func (v KVStorage) Ping() error {
 	// Perform a token introspection to test the connection. This should be allowed by the default vault token policy.
 	logrus.Debug("Verifying Vault connection...")
 	secret, err := v.client.Read("auth/token/lookup-self")
@@ -53,7 +53,7 @@ func (v KVStorage) checkConnection() error {
 	if secret == nil || len(secret.Data) == 0 {
 		return fmt.Errorf("could not read token information on auth/token/lookup-self")
 	}
-	logrus.Info("Connected to Vault.")
+	logrus.Debug("Vault connection verified")
 	return nil
 }
 
@@ -73,11 +73,11 @@ func (v KVStorage) getValue(path, key string) ([]byte, error) {
 		return nil, fmt.Errorf("unable to read key from vault: %w", err)
 	}
 	if result == nil || result.Data == nil {
-		return nil, errKeyNotFound
+		return nil, ErrNotFound
 	}
 	rawValue, ok := result.Data[key]
 	if !ok {
-		return nil, errKeyNotFound
+		return nil, ErrNotFound
 	}
 	value, ok := rawValue.(string)
 	if !ok {
@@ -143,12 +143,12 @@ func (v KVStorage) StoreSecret(key string, value []byte) error {
 	path := storagePath(v.pathPrefix, key)
 
 	_, err := v.getValue(path, keyName)
-	if err == errKeyNotFound {
+	if err == ErrNotFound {
 		return v.storeValue(path, keyName, value)
 	}
 	if err != nil {
 		return err
 	}
 
-	return errKeyAlreadyExists
+	return ErrKeyAlreadyExists
 }
