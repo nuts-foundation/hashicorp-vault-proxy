@@ -50,7 +50,7 @@ jobs:
     - name: setup vault
       run: |
         docker compose up vault --wait
-        docker compose exec -e VAULT_TOKEN=root vault vault secrets enable -version=1 -address=http://localhost:8200 kv
+        docker compose exec -e VAULT_TOKEN=root vault vault secrets enable -version=1 -address=http://vault:8200 kv
 
     - name: setup proxy
       run: |
