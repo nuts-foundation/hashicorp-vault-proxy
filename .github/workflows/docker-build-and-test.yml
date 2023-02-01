@@ -54,7 +54,7 @@ jobs:
 
     - name: setup proxy
       run: |
-        docker run ${{ env.IMAGE_NAME }}:${{ env.TEST_TAG }} -e 'VAULT_ADDR=http://vault:8200' -e 'VAULT_TOKEN=root' --name=proxy
+        docker run -e 'VAULT_ADDR=http://vault:8200' -e 'VAULT_TOKEN=root' --name=proxy ${{ env.IMAGE_NAME }}:${{ env.TEST_TAG }}
 
     - name: run e2e test
       run: |
