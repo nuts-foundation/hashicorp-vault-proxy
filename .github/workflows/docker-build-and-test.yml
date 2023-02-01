@@ -7,7 +7,8 @@ on:
     branches: [ "main" ]
 
 env:
-  TEST_TAG: nuts-foundation/hashicorp-vault-proxy:test
+  IMAGE_NAME: nutsfoundation/hashicorp-vault-proxy
+  TEST_TAG: test
 
 jobs:
 
@@ -22,7 +23,7 @@ jobs:
       id: docker_meta
       uses: docker/metadata-action@v4
       with:
-        images: nutsfoundation/hashicorp-vault-proxy
+        images: ${{ env.IMAGE_NAME }}
         tags: |
           # generate 'master' tag for the master branch
           type=ref,event=branch,enable={{is_default_branch}}
@@ -44,7 +45,7 @@ jobs:
       with:
         context: .
         load: true
-        tags: ${{ env.TEST_TAG }}
+        tags: ${{ env.IMAGE_NAME }}:${{ env.TEST_TAG }}
     
     - name: setup vault
       run: |
@@ -53,7 +54,7 @@ jobs:
 
     - name: setup proxy
       run: |
-        docker run nuts-foundation/hashicorp-vault-proxy:${{ env.TEST_TAG }} -e 'VAULT_ADDR=http://vault:8200' -e 'VAULT_TOKEN=root' --name=proxy
+        docker run ${{ env.IMAGE_NAME }}:${{ env.TEST_TAG }} -e 'VAULT_ADDR=http://vault:8200' -e 'VAULT_TOKEN=root' --name=proxy
 
     - name: run e2e test
       run: |
