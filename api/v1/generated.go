@@ -47,9 +47,10 @@ type ErrorResponse struct {
 //
 // The key should be considered opaque and no assumptions should be made about its value or format.
 // Since the key is the last part of the URL path, slashes and hash symbols must be escaped.
-type Key = safeKey
+type Key = string
 
 // KeyList List of keys currently stored in the store.
+// Note: If the client escaped these keys, they should be unescaped before using them.
 type KeyList = []Key
 
 // Secret The secret value stored under the provided key.
@@ -76,7 +77,7 @@ type ServiceStatus struct {
 // * **warn**: healthy, with some concerns.
 type ServiceStatusStatus string
 
-// StoreSecretRequest Request body to store a secret value.
+// StoreSecretRequest Request body to store a secret value. The secret value must not be empty.
 type StoreSecretRequest struct {
 	// Secret The secret value stored under the provided key.
 	Secret Secret `json:"secret"`
@@ -252,11 +253,11 @@ func (response ListKeys200JSONResponse) VisitListKeysResponse(w http.ResponseWri
 	return json.NewEncoder(w).Encode(response)
 }
 
-type ListKeys400JSONResponse ErrorResponse
+type ListKeys500JSONResponse ErrorResponse
 
-func (response ListKeys400JSONResponse) VisitListKeysResponse(w http.ResponseWriter) error {
+func (response ListKeys500JSONResponse) VisitListKeysResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
+	w.WriteHeader(500)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -277,20 +278,20 @@ func (response DeleteSecret204Response) VisitDeleteSecretResponse(w http.Respons
 	return nil
 }
 
-type DeleteSecret400JSONResponse ErrorResponse
-
-func (response DeleteSecret400JSONResponse) VisitDeleteSecretResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type DeleteSecret404JSONResponse ErrorResponse
 
 func (response DeleteSecret404JSONResponse) VisitDeleteSecretResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type DeleteSecret500JSONResponse ErrorResponse
+
+func (response DeleteSecret500JSONResponse) VisitDeleteSecretResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -312,20 +313,20 @@ func (response LookupSecret200JSONResponse) VisitLookupSecretResponse(w http.Res
 	return json.NewEncoder(w).Encode(response)
 }
 
-type LookupSecret400JSONResponse ErrorResponse
-
-func (response LookupSecret400JSONResponse) VisitLookupSecretResponse(w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-
-	return json.NewEncoder(w).Encode(response)
-}
-
 type LookupSecret404JSONResponse ErrorResponse
 
 func (response LookupSecret404JSONResponse) VisitLookupSecretResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type LookupSecret500JSONResponse ErrorResponse
+
+func (response LookupSecret500JSONResponse) VisitLookupSecretResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
 
 	return json.NewEncoder(w).Encode(response)
 }
@@ -362,6 +363,15 @@ type StoreSecret409JSONResponse ErrorResponse
 func (response StoreSecret409JSONResponse) VisitStoreSecretResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(409)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type StoreSecret500JSONResponse ErrorResponse
+
+func (response StoreSecret500JSONResponse) VisitStoreSecretResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
 
 	return json.NewEncoder(w).Encode(response)
 }

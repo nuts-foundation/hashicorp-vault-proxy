@@ -3,10 +3,11 @@ package vault
 import (
 	"encoding/base64"
 	"fmt"
-	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
 	"net/url"
 	"path/filepath"
+
+	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/sirupsen/logrus"
 )
 
 const keyName = "key"
@@ -95,18 +96,22 @@ func (v KVStorage) storeValue(path, key string, value []byte) error {
 }
 
 func (v KVStorage) DeleteSecret(key string) error {
+	_, err := v.GetSecret(key)
+	if err != nil {
+		return err
+	}
 	path := storagePath(v.pathPrefix, key)
-	_, err := v.client.Delete(path)
+	_, err = v.client.Delete(path)
 	if err != nil {
 		return fmt.Errorf("unable to delete secret from vault: %w", err)
 	}
 	return nil
 }
 
-// ListKeys returns a list of all keys in the vault storage
+// ListKeys returns a list of all keys in the vault storage for the given path.
 func (v KVStorage) ListKeys() ([]string, error) {
 	path := privateKeyListPath(v.pathPrefix)
-	response, err := v.client.ReadWithData(path, map[string][]string{"list": {"true"}})
+	response, err := v.client.List(path)
 	if err != nil {
 		logrus.WithError(err).Error("Could not list private keys in Vault")
 		return nil, err

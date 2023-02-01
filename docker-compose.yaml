@@ -13,6 +13,8 @@ services:
       - IPC_LOCK
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: root
+    ports:
+      - "8200:8200"
   postman:
     image: postman/newman
     command: run /opt/postman-testsuite.json --env-var="api_address=http://proxy:8210"

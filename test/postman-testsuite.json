@@ -17,7 +17,7 @@
 							"script": {
 								"exec": [
 									"pm.test(\"Key removed\", () => {",
-									"    pm.response.to.have.status(204);",
+									"    pm.expect(pm.response.code).to.be.oneOf([204, 404])",
 									"})"
 								],
 								"type": "text/javascript"
@@ -222,6 +222,44 @@
 								"exec": [
 									"pm.test(\"Key removed\", () => {",
 									"    pm.response.to.have.status(204);",
+									"})"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{api_address}}/secrets/key_lifecycle",
+							"host": [
+								"{{api_address}}"
+							],
+							"path": [
+								"secrets",
+								"key_lifecycle"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove key again",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Key not found\", () => {",
+									"    pm.response.to.have.status(404);",
+									"    pm.response.to.be.json;",
+									"})",
+									"",
+									"pm.test(\"Error message should be as specified\", () => {",
+									"    const respJSON = pm.response.json();",
+									"    pm.expect(respJSON.title).to.eql(\"could not delete secret\");",
+									"    pm.expect(respJSON.detail).to.eql(\"key not found\");",
 									"})"
 								],
 								"type": "text/javascript"

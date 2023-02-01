@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+
 	"github.com/nuts-foundation/hashicorp-vault-proxy/vault"
 )
 
@@ -16,8 +17,16 @@ func NewWrapper(vault vault.Storage) Wrapper {
 }
 
 func (w Wrapper) DeleteSecret(ctx context.Context, request DeleteSecretRequestObject) (DeleteSecretResponseObject, error) {
-	err := w.vault.DeleteSecret(string(request.Key))
+	err := w.vault.DeleteSecret(request.Key)
 	if err != nil {
+		if err == vault.ErrNotFound {
+			return DeleteSecret404JSONResponse{
+				Backend: backend,
+				Detail:  err.Error(),
+				Status:  404,
+				Title:   "could not delete secret",
+			}, nil
+		}
 		return nil, err
 	}
 	return DeleteSecret204Response{}, nil
@@ -34,10 +43,10 @@ func (w Wrapper) LookupSecret(ctx context.Context, request LookupSecretRequestOb
 				Title:   "Secret not found",
 			}), nil
 		}
-		return LookupSecret400JSONResponse(ErrorResponse{
+		return LookupSecret500JSONResponse(ErrorResponse{
 			Backend: backend,
 			Detail:  err.Error(),
-			Status:  400,
+			Status:  500,
 			Title:   "Could not retrieve secret",
 		}), nil
 	}
@@ -47,10 +56,10 @@ func (w Wrapper) LookupSecret(ctx context.Context, request LookupSecretRequestOb
 func (w Wrapper) ListKeys(ctx context.Context, request ListKeysRequestObject) (ListKeysResponseObject, error) {
 	keys, err := w.vault.ListKeys()
 	if err != nil {
-		return ListKeys400JSONResponse(ErrorResponse{
+		return ListKeys500JSONResponse(ErrorResponse{
 			Backend: backend,
 			Detail:  err.Error(),
-			Status:  400,
+			Status:  500,
 			Title:   "Could not list keys",
 		}), nil
 	}
@@ -62,7 +71,15 @@ func (w Wrapper) ListKeys(ctx context.Context, request ListKeysRequestObject) (L
 }
 
 func (w Wrapper) StoreSecret(ctx context.Context, request StoreSecretRequestObject) (StoreSecretResponseObject, error) {
-	err := w.vault.StoreSecret(string(request.Key), []byte(request.Body.Secret))
+	if request.Body.Secret == "" {
+		return StoreSecret400JSONResponse(ErrorResponse{
+			Backend: backend,
+			Detail:  "Secret is required",
+			Status:  400,
+			Title:   "Bad request",
+		}), nil
+	}
+	err := w.vault.StoreSecret(request.Key, []byte(request.Body.Secret))
 	if err != nil {
 		if err == vault.ErrKeyAlreadyExists {
 			return StoreSecret409JSONResponse(ErrorResponse{
@@ -72,10 +89,10 @@ func (w Wrapper) StoreSecret(ctx context.Context, request StoreSecretRequestObje
 				Title:   "Key already exists",
 			}), nil
 		}
-		return StoreSecret400JSONResponse(ErrorResponse{
+		return StoreSecret500JSONResponse(ErrorResponse{
 			Backend: backend,
 			Detail:  err.Error(),
-			Status:  400,
+			Status:  500,
 			Title:   "Could not store secret",
 		}), nil
 	}
@@ -91,7 +108,7 @@ func (w Wrapper) StoreSecret(ctx context.Context, request StoreSecretRequestObje
 	return StoreSecret200JSONResponse{Secret: Secret(result)}, nil
 }
 
-func (w Wrapper) HealthCheck(ctx context.Context, request HealthCheckRequestObject) (HealthCheckResponseObject, error) {
+func (w Wrapper) HealthCheck(ctx context.Context, _ HealthCheckRequestObject) (HealthCheckResponseObject, error) {
 	if err := w.vault.Ping(); err != nil {
 		return HealthCheck503JSONResponse{Status: Fail}, nil
 	}

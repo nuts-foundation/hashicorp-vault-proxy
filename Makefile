@@ -15,6 +15,10 @@ start: stop
 stop:
 	docker compose stop
 
+start-vault:
+	docker compose up vault --wait
+	docker compose exec -e VAULT_TOKEN=root vault vault secrets enable -version=1 -address=http://localhost:8200 kv
+
 reset:
 	docker compose stop && docker compose rm -v -f
 
