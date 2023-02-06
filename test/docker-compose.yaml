@@ -1,7 +1,7 @@
 version: "3.7"
 services:
   proxy:
-    image: nutsfoundation/hashicorp-vault-proxy:ci-test
+    image: nutsfoundation/hashicorp-vault-proxy:test
     depends_on:
       vault-setup:
         condition: service_completed_successfully
