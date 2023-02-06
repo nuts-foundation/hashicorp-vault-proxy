@@ -12,7 +12,7 @@ services:
     cap_add:
       - IPC_LOCK
     environment:
-      VAULT_DEV_ROOT_TOKEN_ID: root 
+      VAULT_DEV_ROOT_TOKEN_ID: root
     ports:
       - "8200:8200"
   postman:
@@ -20,7 +20,3 @@ services:
     command: run /opt/postman-testsuite.json --env-var="api_address=http://proxy:8210"
     volumes:
       - ./test/postman-testsuite.json:/opt/postman-testsuite.json:ro
-
-networks:
-  default:
-    name: vault-proxy
