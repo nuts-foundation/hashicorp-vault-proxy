@@ -54,9 +54,9 @@ jobs:
 
     - name: setup proxy
       run: |
-        docker run -e 'VAULT_ADDR=http://vault:8200' -e 'VAULT_TOKEN=root' --name=proxy ${{ env.IMAGE_NAME }}:${{ env.TEST_TAG }}
+        docker run --network=vault-proxy -e 'VAULT_ADDR=http://vault:8200' -e 'VAULT_TOKEN=root' --name=proxy ${{ env.IMAGE_NAME }}:${{ env.TEST_TAG }}
 
     - name: run e2e test
       run: |
-        docker run --volume=${PWD}/test/postman-testsuite.json:/opt/postman-testsuite.json:ro postman/newman run /opt/postman-testsuite.json --env-var="api_address=http://proxy:8210"
+        docker run --network=vault-proxy --volume=${PWD}/test/postman-testsuite.json:/opt/postman-testsuite.json:ro postman/newman run /opt/postman-testsuite.json --env-var="api_address=http://proxy:8210"
     
