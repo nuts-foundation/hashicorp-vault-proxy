@@ -110,7 +110,8 @@ func (w Wrapper) StoreSecret(ctx context.Context, request StoreSecretRequestObje
 
 func (w Wrapper) HealthCheck(ctx context.Context, _ HealthCheckRequestObject) (HealthCheckResponseObject, error) {
 	if err := w.vault.Ping(); err != nil {
-		return HealthCheck503JSONResponse{Status: Fail}, nil
+		errMessage := err.Error()
+		return HealthCheck503JSONResponse{Status: Fail, Details: &errMessage}, nil
 	}
 	return HealthCheck200JSONResponse{Status: Pass}, nil
 }
