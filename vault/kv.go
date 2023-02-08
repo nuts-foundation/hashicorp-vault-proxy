@@ -13,8 +13,17 @@ import (
 const keyName = "key"
 
 type KVStorage struct {
-	client     *vaultapi.Logical
+	client     vaultClient
 	pathPrefix string
+}
+
+// vaultClient is an interface which has been implemented by the mockVaultClient and real vault.Logical to allow testing vault without the server.
+type vaultClient interface {
+	Read(path string) (*vaultapi.Secret, error)
+	Write(path string, data map[string]interface{}) (*vaultapi.Secret, error)
+	List(path string) (*vaultapi.Secret, error)
+	ReadWithData(path string, data map[string][]string) (*vaultapi.Secret, error)
+	Delete(path string) (*vaultapi.Secret, error)
 }
 
 // NewKVStore creates a new Vault backend using the kv version 1 secret engine: https://www.vaultproject.io/docs/secrets/kv
@@ -81,14 +90,16 @@ func (v KVStorage) getValue(path, key string) ([]byte, error) {
 		return nil, ErrNotFound
 	}
 	value, ok := rawValue.(string)
+
 	if !ok {
 		return nil, fmt.Errorf("unable to convert key result to string")
 	}
-	return base64.StdEncoding.DecodeString(value)
+	return base64.StdEncoding.DecodeString(string(value))
 }
 
 func (v KVStorage) storeValue(path, key string, value []byte) error {
-	_, err := v.client.Write(path, map[string]interface{}{key: value})
+	encodedValue := base64.StdEncoding.EncodeToString(value)
+	_, err := v.client.Write(path, map[string]interface{}{key: encodedValue})
 	if err != nil {
 		return fmt.Errorf("unable to write secret to vault: %w", err)
 	}
