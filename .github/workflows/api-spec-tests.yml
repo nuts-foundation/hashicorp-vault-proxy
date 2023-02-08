@@ -11,7 +11,9 @@ env:
 
 jobs:
 
-  build:
+  build_and_test:
+    name: Build and test API
+
     runs-on: ubuntu-latest
 
     steps:
@@ -28,12 +30,12 @@ jobs:
         load: true
         tags: ${{ env.IMAGE_NAME }}:${{ env.TEST_TAG }}
 
-    - name: setup
+    - name: Setup
       working-directory: ./test
       run: |
         docker compose up --wait
 
-    - name: run e2e test
+    - name: Run API tests
       working-directory: ./test
       run: |
         docker run --network=vault-proxy-test --volume=${PWD}/postman-testsuite.json:/opt/postman-testsuite.json:ro postman/newman run /opt/postman-testsuite.json --env-var="api_address=http://proxy:8210"
