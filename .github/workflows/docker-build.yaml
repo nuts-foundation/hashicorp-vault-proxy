@@ -7,7 +7,6 @@ on:
       - main
     tags:
       - 'v*'
-  pull_request:
 
 jobs:
   docker:
@@ -22,7 +21,7 @@ jobs:
         with:
           images: nutsfoundation/hashicorp-vault-proxy
           tags: |
-            # generate 'master' tag for the master branch
+            # generate 'main' tag for the main branch
             type=ref,event=branch,enable={{is_default_branch}}
             # generate v5.2.1 tag
             type=semver,pattern=v{{version}}
