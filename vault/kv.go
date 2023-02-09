@@ -20,17 +20,27 @@ package vault
 import (
 	"encoding/base64"
 	"fmt"
-	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/sirupsen/logrus"
 	"net/url"
 	"path/filepath"
+
+	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/sirupsen/logrus"
 )
 
 const keyName = "key"
 
 type KVStorage struct {
-	client     *vaultapi.Logical
+	client     vaultClient
 	pathPrefix string
+}
+
+// vaultClient is an interface which has been implemented by the mockVaultClient and real vault.Logical to allow testing vault without the server.
+type vaultClient interface {
+	Read(path string) (*vaultapi.Secret, error)
+	Write(path string, data map[string]interface{}) (*vaultapi.Secret, error)
+	List(path string) (*vaultapi.Secret, error)
+	ReadWithData(path string, data map[string][]string) (*vaultapi.Secret, error)
+	Delete(path string) (*vaultapi.Secret, error)
 }
 
 // NewKVStore creates a new Vault backend using the kv version 1 secret engine: https://www.vaultproject.io/docs/secrets/kv
@@ -44,7 +54,7 @@ func NewKVStore(pathPrefix string) (Storage, error) {
 	}
 
 	vaultStorage := KVStorage{client: client.Logical(), pathPrefix: pathPrefix}
-	if err = vaultStorage.checkConnection(); err != nil {
+	if err = vaultStorage.Ping(); err != nil {
 		return nil, err
 	}
 	return vaultStorage, nil
@@ -60,7 +70,7 @@ func configureVaultClient() (*vaultapi.Client, error) {
 	return client, nil
 }
 
-func (v KVStorage) checkConnection() error {
+func (v KVStorage) Ping() error {
 	// Perform a token introspection to test the connection. This should be allowed by the default vault token policy.
 	logrus.Debug("Verifying Vault connection...")
 	secret, err := v.client.Read("auth/token/lookup-self")
@@ -70,7 +80,7 @@ func (v KVStorage) checkConnection() error {
 	if secret == nil || len(secret.Data) == 0 {
 		return fmt.Errorf("could not read token information on auth/token/lookup-self")
 	}
-	logrus.Info("Connected to Vault.")
+	logrus.Debug("Vault connection verified")
 	return nil
 }
 
@@ -90,21 +100,23 @@ func (v KVStorage) getValue(path, key string) ([]byte, error) {
 		return nil, fmt.Errorf("unable to read key from vault: %w", err)
 	}
 	if result == nil || result.Data == nil {
-		return nil, errKeyNotFound
+		return nil, ErrNotFound
 	}
 	rawValue, ok := result.Data[key]
 	if !ok {
-		return nil, errKeyNotFound
+		return nil, ErrNotFound
 	}
 	value, ok := rawValue.(string)
+
 	if !ok {
 		return nil, fmt.Errorf("unable to convert key result to string")
 	}
-	return base64.StdEncoding.DecodeString(value)
+	return base64.StdEncoding.DecodeString(string(value))
 }
 
 func (v KVStorage) storeValue(path, key string, value []byte) error {
-	_, err := v.client.Write(path, map[string]interface{}{key: value})
+	encodedValue := base64.StdEncoding.EncodeToString(value)
+	_, err := v.client.Write(path, map[string]interface{}{key: encodedValue})
 	if err != nil {
 		return fmt.Errorf("unable to write secret to vault: %w", err)
 	}
@@ -112,18 +124,22 @@ func (v KVStorage) storeValue(path, key string, value []byte) error {
 }
 
 func (v KVStorage) DeleteSecret(key string) error {
+	_, err := v.GetSecret(key)
+	if err != nil {
+		return err
+	}
 	path := storagePath(v.pathPrefix, key)
-	_, err := v.client.Delete(path)
+	_, err = v.client.Delete(path)
 	if err != nil {
 		return fmt.Errorf("unable to delete secret from vault: %w", err)
 	}
 	return nil
 }
 
-// ListKeys returns a list of all keys in the vault storage
+// ListKeys returns a list of all keys in the vault storage for the given path.
 func (v KVStorage) ListKeys() ([]string, error) {
 	path := privateKeyListPath(v.pathPrefix)
-	response, err := v.client.ReadWithData(path, map[string][]string{"list": {"true"}})
+	response, err := v.client.List(path)
 	if err != nil {
 		logrus.WithError(err).Error("Could not list private keys in Vault")
 		return nil, err
@@ -160,12 +176,12 @@ func (v KVStorage) StoreSecret(key string, value []byte) error {
 	path := storagePath(v.pathPrefix, key)
 
 	_, err := v.getValue(path, keyName)
-	if err == errKeyNotFound {
+	if err == ErrNotFound {
 		return v.storeValue(path, keyName, value)
 	}
 	if err != nil {
 		return err
 	}
 
-	return errKeyAlreadyExists
+	return ErrKeyAlreadyExists
 }
