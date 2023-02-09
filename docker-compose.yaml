@@ -5,8 +5,12 @@ services:
     environment:
       VAULT_ADDR: http://vault:8200
       VAULT_TOKEN: root
+    depends_on:
+      vault:
+        condition: service_healthy
     ports:
       - "8210:8210"
+
   vault:
     image: vault
     cap_add:
@@ -15,8 +19,17 @@ services:
       VAULT_DEV_ROOT_TOKEN_ID: root
     ports:
       - "8200:8200"
+    healthcheck:
+      test: VAULT_ADDR=http://127.0.0.1:8200 vault status
+      interval: 2s
+      timeout: 1s
+      retries: 5
+      
   postman:
     image: postman/newman
     command: run /opt/postman-testsuite.json --env-var="api_address=http://proxy:8210"
+    depends_on:
+      proxy:
+        condition: service_healthy
     volumes:
       - ./test/postman-testsuite.json:/opt/postman-testsuite.json:ro
