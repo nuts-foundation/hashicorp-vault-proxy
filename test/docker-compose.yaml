@@ -1,0 +1,40 @@
+version: "3.7"
+services:
+  proxy:
+    image: nutsfoundation/hashicorp-vault-proxy:test
+    depends_on:
+      vault-setup:
+        condition: service_completed_successfully
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+    ports:
+      - "8210:8210"
+  vault:
+    image: vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+    ports:
+      - "8200:8200"
+    healthcheck:
+      test: VAULT_ADDR=http://127.0.0.1:8200 vault status
+      interval: 1s
+      timeout: 5s
+      retries: 5
+  vault-setup:
+    image: vault
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_TOKEN: root
+    restart: "no"
+    depends_on:
+      vault:
+        condition: service_healthy
+    command: secrets enable -version=1 -address=http://vault:8200 kv
+
+networks:
+  default:
+    name: vault-proxy-test
