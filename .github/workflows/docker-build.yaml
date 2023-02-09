@@ -6,7 +6,7 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - '*'
 
 jobs:
   docker:
@@ -24,9 +24,9 @@ jobs:
             # generate 'main' tag for the main branch
             type=ref,event=branch,enable={{is_default_branch}}
             # generate v5.2.1 tag
-            type=semver,pattern=v{{version}}
+            type=semver,pattern={{version}}
             # generate v5 tag
-            type=semver,pattern=v{{major}}
+            type=semver,pattern={{major}}
           flavor: |
             latest=auto
 
