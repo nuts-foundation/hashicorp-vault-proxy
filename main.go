@@ -19,11 +19,14 @@ package main
 
 import (
 	"fmt"
+	"os"
+
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/sirupsen/logrus"
+
 	v1 "github.com/nuts-foundation/hashicorp-vault-proxy/api/v1"
 	"github.com/nuts-foundation/hashicorp-vault-proxy/vault"
-	"github.com/sirupsen/logrus"
-	"os"
 )
 
 const listenAddress = ":8210"
