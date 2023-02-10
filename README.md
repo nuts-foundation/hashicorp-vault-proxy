@@ -4,6 +4,7 @@
 A small proxy server which implements the Nuts Storage API, forwarding calls to a Hashicorp Vault Server.
 
 ![e2e tests](https://github.com/nuts-foundation/hashicorp-vault-proxy/actions/workflows/api-spec-tests.yml/badge.svg?branch=main)
+[![Maintainability](https://api.codeclimate.com/v1/badges/292d76eac27521e95357/maintainability)](https://codeclimate.com/github/nuts-foundation/hashicorp-vault-proxy/maintainability)
 
 ## Running
 
