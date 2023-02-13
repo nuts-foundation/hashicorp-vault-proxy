@@ -18,7 +18,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-w -s" -o /opt/hashicorp-vault-proxy
 
 # alpine
-FROM alpine:3.17.1
+FROM alpine:3.17.2
 RUN apk update \
   && apk add --no-cache \
              tzdata \
