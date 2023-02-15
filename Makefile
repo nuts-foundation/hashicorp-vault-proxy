@@ -1,9 +1,10 @@
-.PHONY: build start
+.PHONY: build start gen-api api run-generators stop start-vault reset api-test
 
 run-generators: gen-api
 
-gen-api:
-	oapi-codegen --config codegen/configs/nuts-storage-api-server.yaml codegen/api-specs/nuts-storage-api-v1.yaml | gofmt > api/v1/generated.go
+gen-api: api
+api:
+	oapi-codegen --config codegen/configs/nuts-storage-api-server.yaml https://raw.githubusercontent.com/nuts-foundation/secret-store-api/main/nuts-storage-api-v1.yaml | gofmt > api/v1/generated.go
 
 build:
 	docker build -t nutsfoundation/hashicorp-vault-proxy .
