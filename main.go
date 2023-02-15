@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/labstack/echo/v4"
@@ -33,12 +34,23 @@ const listenAddress = ":8210"
 
 func main() {
 	logrus.Info("Starting the Hashicorp Vault Proxy...")
+
 	pathPrefix := os.Getenv("VAULT_PATHPREFIX")
 	if pathPrefix == "" {
 		pathPrefix = "kv"
 	}
 
-	kv, err := vault.NewKVStore(pathPrefix)
+	pathName := os.Getenv("VAULT_PATHNAME")
+	if pathName == "" {
+		pathName = "nuts-private-keys"
+	}
+
+	path, err := url.JoinPath(pathPrefix, pathName)
+	if err != nil {
+		panic(fmt.Errorf("unable to assemble vault secret path: %w", err))
+	}
+
+	kv, err := vault.NewKVStore(path)
 	if err != nil {
 		panic(fmt.Errorf("unable to create Vault KVStore: %w", err))
 	}

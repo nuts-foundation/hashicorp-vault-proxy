@@ -18,9 +18,7 @@
 package vault
 
 import (
-	"encoding/base64"
 	"fmt"
-	"net/url"
 	"path/filepath"
 
 	vaultapi "github.com/hashicorp/vault/api"
@@ -111,12 +109,13 @@ func (v KVStorage) getValue(path, key string) ([]byte, error) {
 	if !ok {
 		return nil, fmt.Errorf("unable to convert key result to string")
 	}
-	return base64.StdEncoding.DecodeString(string(value))
+	return []byte(value), nil
 }
 
 func (v KVStorage) storeValue(path, key string, value []byte) error {
-	encodedValue := base64.StdEncoding.EncodeToString(value)
-	_, err := v.client.Write(path, map[string]interface{}{key: encodedValue})
+	// convert to string to prevent base64 encoding
+	stringValue := string(value)
+	_, err := v.client.Write(path, map[string]interface{}{key: stringValue})
 	if err != nil {
 		return fmt.Errorf("unable to write secret to vault: %w", err)
 	}
@@ -162,9 +161,7 @@ func (v KVStorage) ListKeys() ([]string, error) {
 // storagePath cleans the key by removing optional slashes and dots and constructs the key path
 // This prevents “dot-dot-slash” aka “directory traversal” attacks.
 func storagePath(prefix, key string) string {
-	// Clean the key by encoding optional slashes and dots and prepend the prefix
-	cleanKey := url.PathEscape(key)
-	return filepath.Clean(fmt.Sprintf("%s/%s", prefix, filepath.Base(cleanKey)))
+	return filepath.Clean(fmt.Sprintf("%s/%s", prefix, filepath.Base(key)))
 }
 
 func privateKeyListPath(prefix string) string {
