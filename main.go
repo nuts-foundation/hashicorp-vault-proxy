@@ -35,16 +35,19 @@ const listenAddress = ":8210"
 func main() {
 	logrus.Info("Starting the Hashicorp Vault Proxy...")
 
+	// pathPrefix should always be set
 	pathPrefix := os.Getenv("VAULT_PATHPREFIX")
 	if pathPrefix == "" {
 		pathPrefix = "kv"
 	}
 
-	pathName := os.Getenv("VAULT_PATHNAME")
-	if pathName == "" {
+	// pathName is optional
+	pathName, isSet := os.LookupEnv("VAULT_PATHNAME")
+	if !isSet {
 		pathName = "nuts-private-keys"
 	}
 
+	// JoinPath will only add a slash if pathName is set
 	path, err := url.JoinPath(pathPrefix, pathName)
 	if err != nil {
 		panic(fmt.Errorf("unable to assemble vault secret path: %w", err))
