@@ -20,7 +20,6 @@ package vault
 import (
 	"encoding/base64"
 	"errors"
-	"net/url"
 	"strings"
 	"testing"
 
@@ -96,7 +95,6 @@ var encodedSecret = []byte(base64.StdEncoding.EncodeToString(secret))
 const prefix = "kv"
 const kid = "did:nuts:123#abc"
 
-var encodedKid = url.PathEscape(kid)
 var vaultError = errors.New("vault error")
 
 func TestVaultKVStorage(t *testing.T) {
@@ -170,7 +168,7 @@ func TestVaultKVStorage_ListKeys(t *testing.T) {
 		v := KVStorage{pathPrefix: prefix, client: mockVaultClient{store: map[string]map[string]interface{}{storagePath(prefix, kid): {"key": string(encodedSecret)}}}}
 		result, err := v.ListKeys()
 		assert.NoError(t, err)
-		assert.Equal(t, []string{encodedKid}, result)
+		assert.Equal(t, []string{kid}, result)
 	})
 
 	t.Run("error - while listing", func(t *testing.T) {

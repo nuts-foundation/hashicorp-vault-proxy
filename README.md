@@ -30,6 +30,11 @@ See https://github.com/hashicorp/vault/blob/main/api/client.go for the available
 In addition, the following environment variables can be set:
 
 - `VAULT_PATHPREFIX`: the path prefix to use for the Vault keys, which generally matches the secret store name (defaults to `kv`).
+- `VAULT_PATHNAME`: the path name to use for the Vault keys, which generally matches the secret store name (defaults to `nuts-private-keys`).
+
+## Backwards compatibility
+
+The Vault proxy can be used as a drop-in replacement for the embedded Nuts node Vault secret storage engine. If you already have your keys in Hashicorp Vault and want to use the proxy, make sure to set the `VAULT_PATHPREFIX` to your nodes `crypto.vault.pathprefix` value of leave it empty for default and leave `VAULT_PATHNAME` empty.
 
 ## Test suite
 
