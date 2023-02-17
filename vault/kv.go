@@ -51,11 +51,7 @@ func NewKVStore(pathPrefix string) (Storage, error) {
 		return nil, err
 	}
 
-	vaultStorage := KVStorage{client: client.Logical(), pathPrefix: pathPrefix}
-	if err = vaultStorage.Ping(); err != nil {
-		return nil, err
-	}
-	return vaultStorage, nil
+	return KVStorage{client: client.Logical(), pathPrefix: pathPrefix}, nil
 }
 
 func configureVaultClient() (*vaultapi.Client, error) {
