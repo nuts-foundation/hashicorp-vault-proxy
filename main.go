@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"os"
 
@@ -33,7 +34,14 @@ import (
 const listenAddress = ":8210"
 
 func main() {
-	logrus.Info("Starting the Hashicorp Vault Proxy...")
+	logFormat := os.Getenv("LOG_FORMAT")
+	switch logFormat {
+	case "json":
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	default:
+		logrus.SetFormatter(&logrus.TextFormatter{})
+	}
+	logrus.Infof("Starting the Hashicorp Vault Proxy on %s", listenAddress)
 
 	// pathPrefix should always be set
 	pathPrefix := os.Getenv("VAULT_PATHPREFIX")
@@ -61,12 +69,38 @@ func main() {
 	handler := v1.NewStrictHandler(v1.NewWrapper(kv), nil)
 
 	e := echo.New()
-	loggerCfg := middleware.DefaultLoggerConfig
-	loggerCfg.Skipper = func(c echo.Context) bool {
-		return c.Path() == "/health"
-	}
-	e.Use(middleware.LoggerWithConfig(loggerCfg))
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		Skipper: func(c echo.Context) bool {
+			return c.Path() == "/health"
+		},
+		LogURI:      true,
+		LogStatus:   true,
+		LogMethod:   true,
+		LogRemoteIP: true,
+		LogError:    true,
+		LogValuesFunc: func(c echo.Context, values middleware.RequestLoggerValues) error {
+			status := values.Status
+			if values.Error != nil {
+				switch errWithStatus := values.Error.(type) {
+				case *echo.HTTPError:
+					status = errWithStatus.Code
+				default:
+					status = http.StatusInternalServerError
+				}
+			}
+
+			logrus.WithFields(logrus.Fields{
+				"remote_ip": values.RemoteIP,
+				"method":    values.Method,
+				"uri":       values.URI,
+				"status":    status,
+			}).Info("HTTP request")
+
+			return nil
+		},
+	}))
 	e.HideBanner = true
+	e.HidePort = true
 	v1.RegisterHandlers(e, handler)
 	err = e.Start(listenAddress)
 	if err != nil {

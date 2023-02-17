@@ -31,6 +31,7 @@ In addition, the following environment variables can be set:
 
 - `VAULT_PATHPREFIX`: the path prefix to use for the Vault keys, which generally matches the secret store name (defaults to `kv`).
 - `VAULT_PATHNAME`: the path name to use for the Vault keys, which generally matches the secret store name (defaults to `nuts-private-keys`).
+- `LOG_FORMAT`: the log format to use, either `json` or `text` (defaults to `text`).
 
 ## Backwards compatibility
 
