@@ -12,7 +12,7 @@ services:
       - "8210:8210"
 
   vault:
-    image: vault
+    image: hashicorp/vault:latest
     cap_add:
       - IPC_LOCK
     environment:
