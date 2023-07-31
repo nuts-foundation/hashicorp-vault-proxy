@@ -3,7 +3,7 @@ module github.com/nuts-foundation/hashicorp-vault-proxy
 go 1.20
 
 require (
-	github.com/deepmap/oapi-codegen v1.13.0
+	github.com/deepmap/oapi-codegen v1.13.1
 	github.com/hashicorp/vault/api v1.9.2
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/sirupsen/logrus v1.9.3
