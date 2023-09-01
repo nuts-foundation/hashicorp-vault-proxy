@@ -1,6 +1,6 @@
 module github.com/nuts-foundation/hashicorp-vault-proxy
 
-go 1.20
+go 1.21
 
 require (
 	github.com/deepmap/oapi-codegen v1.13.4
