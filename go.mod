@@ -3,7 +3,7 @@ module github.com/nuts-foundation/hashicorp-vault-proxy
 go 1.21
 
 require (
-	github.com/hashicorp/vault/api v1.12.1
+	github.com/hashicorp/vault/api v1.12.2
 	github.com/labstack/echo/v4 v4.11.4
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/sirupsen/logrus v1.9.3
