@@ -1,13 +1,13 @@
 # golang alpine
-FROM golang:1.22.6-alpine as builder
+FROM golang:1.22.6-alpine AS builder
 
 ARG TARGETARCH
 ARG TARGETOS
 
 RUN apk update
 
-ENV GO111MODULE on
-ENV GOPATH /
+ENV GO111MODULE=on
+ENV GOPATH=/
 
 RUN mkdir /opt/nuts && cd /opt/nuts
 COPY go.mod .
