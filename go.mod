@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/hashicorp/vault/api v1.16.0
 	github.com/labstack/echo/v4 v4.13.3
-	github.com/oapi-codegen/runtime v1.1.1
+	github.com/oapi-codegen/runtime v1.1.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 )
