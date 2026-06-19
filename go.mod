@@ -6,7 +6,7 @@ require (
 	github.com/hashicorp/vault/api v1.23.0
 	github.com/labstack/echo/v4 v4.15.1
 	github.com/oapi-codegen/runtime v1.1.2
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
 )
 
