@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/hashicorp/vault/api v1.23.0
-	github.com/labstack/echo/v4 v4.16.2
+	github.com/labstack/echo/v4 v4.16.3
 	github.com/oapi-codegen/runtime v1.8.0
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
